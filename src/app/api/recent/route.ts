@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import sql from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export async function GET() {
   try {
     const rows = await sql`
@@ -10,11 +13,17 @@ export async function GET() {
       ORDER BY domain, scanned_at DESC
       LIMIT 10
     `
-    // Re-sort by scanned_at after DISTINCT
     const sorted = [...rows].sort(
       (a, b) => new Date(b.scanned_at).getTime() - new Date(a.scanned_at).getTime()
     )
-    return NextResponse.json({ ok: true, data: sorted })
+    return NextResponse.json(
+      { ok: true, data: sorted },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+        }
+      }
+    )
   } catch (err) {
     return NextResponse.json({ ok: false, data: [] })
   }
