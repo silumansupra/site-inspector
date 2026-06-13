@@ -18,8 +18,10 @@ export async function checkSsl(domain: string): Promise<LookupResult<SslData>> {
           const validTo  = new Date(cert.valid_to)
           const daysRemaining = Math.floor((validTo.getTime() - Date.now()) / 86_400_000)
 
-          const issuerCN = cert.issuer?.CN ?? cert.issuer?.O ?? 'Unknown'
-          const selfSigned = cert.issuer?.CN === cert.subject?.CN
+          const issuerCN = Array.isArray(cert.issuer?.CN)
+            ? cert.issuer.CN[0]
+            : (cert.issuer?.CN ?? cert.issuer?.O ?? 'Unknown')
+        const selfSigned = issuerCN === (cert.subject?.CN ?? domain)
 
           socket.destroy()
           resolve({
