@@ -2,6 +2,11 @@
 import tls from 'node:tls'
 import type { LookupResult, SslData } from '@/lib/types'
 
+function str(val: string | string[] | undefined, fallback = ''): string {
+  if (!val) return fallback
+  return Array.isArray(val) ? val[0] : val
+}
+
 export async function checkSsl(domain: string): Promise<LookupResult<SslData>> {
   const start = Date.now()
   const id    = 'ssl'
@@ -18,20 +23,19 @@ export async function checkSsl(domain: string): Promise<LookupResult<SslData>> {
           const validTo  = new Date(cert.valid_to)
           const daysRemaining = Math.floor((validTo.getTime() - Date.now()) / 86_400_000)
 
-          const issuerCN = Array.isArray(cert.issuer?.CN)
-            ? cert.issuer.CN[0]
-            : (cert.issuer?.CN ?? cert.issuer?.O ?? 'Unknown')
-        const selfSigned = issuerCN === (cert.subject?.CN ?? domain)
+          const issuer  = str(cert.issuer?.CN) || str(cert.issuer?.O) || 'Unknown'
+          const subject = str(cert.subject?.CN) || domain
+          const selfSigned = issuer === subject
 
           socket.destroy()
           resolve({
             id, label, status: 'success', duration: Date.now() - start,
             data: {
-              valid:         socket.authorized || true,
-              issuer:        issuerCN,
-              subject:       cert.subject?.CN ?? domain,
-              validFrom:     cert.valid_from,
-              validTo:       cert.valid_to,
+              valid: socket.authorized || true,
+              issuer,
+              subject,
+              validFrom: cert.valid_from,
+              validTo:   cert.valid_to,
               daysRemaining,
               protocol,
               selfSigned,
