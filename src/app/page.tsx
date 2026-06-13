@@ -1,12 +1,27 @@
 'use client'
-// src/app/page.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
+interface RecentScan {
+  domain:     string
+  scanned_at: string
+  duration_ms: number
+  passed:     number
+  issues:     number
+}
+
 export default function HomePage() {
-  const router   = useRouter()
-  const [domain, setDomain] = useState('')
-  const [error,  setError]  = useState('')
+  const router  = useRouter()
+  const [domain,  setDomain]  = useState('')
+  const [error,   setError]   = useState('')
+  const [recents, setRecents] = useState<RecentScan[]>([])
+
+  useEffect(() => {
+    fetch('/api/recent')
+      .then(r => r.json())
+      .then(d => { if (d.ok) setRecents(d.data) })
+      .catch(() => {})
+  }, [])
 
   const handleScan = () => {
     const cleaned = domain.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').trim()
@@ -15,6 +30,14 @@ export default function HomePage() {
     if (!valid)   { setError('Invalid domain format'); return }
     setError('')
     router.push(`/check/${cleaned}`)
+  }
+
+  const timeAgo = (date: string) => {
+    const diff = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
+    if (diff < 60)   return `${diff}s ago`
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
+    return `${Math.floor(diff / 86400)}d ago`
   }
 
   return (
@@ -26,7 +49,7 @@ export default function HomePage() {
           OSINT &amp; Security Scanner
         </div>
         <h1 className="text-4xl font-bold text-terminal-text tracking-tight mb-3">
-          web<span className="text-terminal-blue">_</span>scanner
+          site<span className="text-terminal-blue">_</span>inspector
         </h1>
         <p className="text-terminal-muted text-sm max-w-md">
           DNS · SSL · Security Headers · WHOIS · Open Ports · Robots.txt
@@ -56,18 +79,14 @@ export default function HomePage() {
           </button>
         </div>
         {error && <p className="mt-2 text-terminal-red text-xs">{error}</p>}
-
-        <p className="mt-3 text-terminal-border text-xs text-center">
-          e.g. github.com · google.com · cloudflare.com
-        </p>
       </div>
 
       {/* Quick examples */}
-      <div className="mt-8 flex gap-2 flex-wrap justify-center">
+      <div className="mt-4 flex gap-2 flex-wrap justify-center">
         {['github.com', 'cloudflare.com', 'google.com'].map(d => (
           <button
             key={d}
-            onClick={() => { setDomain(d); setError(''); router.push(`/check/${d}`) }}
+            onClick={() => router.push(`/check/${d}`)}
             className="text-xs text-terminal-muted hover:text-terminal-blue border border-terminal-border hover:border-terminal-blue/50 rounded px-3 py-1.5 transition-colors"
           >
             {d}
@@ -75,7 +94,36 @@ export default function HomePage() {
         ))}
       </div>
 
-      <footer className="absolute bottom-6 text-terminal-border text-xs">
+      {/* Recent scans */}
+      {recents.length > 0 && (
+        <div className="mt-12 w-full max-w-xl">
+          <p className="text-terminal-muted text-xs mb-3 uppercase tracking-widest">Recent Scans</p>
+          <div className="border border-terminal-border rounded-lg overflow-hidden" style={{ background: 'var(--surface)' }}>
+            {recents.map((r, i) => (
+              <button
+                key={i}
+                onClick={() => router.push(`/check/${r.domain}`)}
+                className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-terminal-blue/5 border-b border-terminal-border/50 last:border-0 transition-colors group"
+              >
+                <div className="flex items-center gap-3">
+                  <span className={`w-1.5 h-1.5 rounded-full ${r.issues > 0 ? 'bg-terminal-yellow' : 'bg-terminal-green'}`} />
+                  <span className="text-terminal-text text-sm group-hover:text-terminal-blue transition-colors">
+                    {r.domain}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4 text-xs text-terminal-muted">
+                  {r.issues > 0 && (
+                    <span className="text-terminal-yellow">{r.issues} issues</span>
+                  )}
+                  <span>{timeAgo(r.scanned_at)}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <footer className="mt-12 text-terminal-border text-xs">
         For educational &amp; authorized use only
       </footer>
     </main>
