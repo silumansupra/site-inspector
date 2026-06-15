@@ -1,6 +1,6 @@
 'use client'
 // src/components/ResultCard.tsx
-import type { LookupResult, HeadersData, DnsData, SslData, WhoisData, PortsData, RobotsData, SecurityHeadersData } from '@/lib/types'
+import type { LookupResult, HeadersData, DnsData, SslData, WhoisData, PortsData, RobotsData, SecurityHeadersData, SocialTagsData, EmailSecurityData } from '@/lib/types'
 
 interface Props {
   result: LookupResult<unknown>
@@ -43,6 +43,8 @@ function ResultBody({ result }: { result: LookupResult<unknown> }) {
     case 'ports':            return <PortsBody   data={result.data as PortsData} />
     case 'robots':           return <RobotsBody  data={result.data as RobotsData} />
     case 'security-headers': return <SecHeadersBody data={result.data as SecurityHeadersData} />
+    case 'social-tags':     return <SocialTagsBody    data={result.data as SocialTagsData} />
+    case 'email-security':  return <EmailSecurityBody data={result.data as EmailSecurityData} />
     default:                 return <pre className="text-xs text-terminal-muted overflow-auto">{JSON.stringify(result.data, null, 2)}</pre>
   }
 }
@@ -153,6 +155,36 @@ function SecHeadersBody({ data }: { data: SecurityHeadersData }) {
           <Row key={h.name} label={h.name} value={h.present ? '✓' : `✗ (${h.risk} risk)`} ok={h.present} />
         ))}
       </div>
+    </div>
+  )
+}
+
+function SocialTagsBody({ data }: { data: SocialTagsData }) {
+  return (
+    <div className="space-y-1">
+      {data.title       && <Row label="Title"       value={data.title} />}
+      {data.description && <Row label="Description" value={data.description.slice(0, 100) + (data.description.length > 100 ? '...' : '')} />}
+      {data.canonical   && <Row label="Canonical"   value={data.canonical} />}
+      {data.author      && <Row label="Author"      value={data.author} />}
+      {data.generator   && <Row label="Generator"   value={data.generator} />}
+      {data.themeColor  && <Row label="Theme Color" value={data.themeColor} />}
+      {data.robots      && <Row label="Robots"      value={data.robots} />}
+      {data.og.image    && <Row label="OG Image"    value={data.og.image} />}
+      {data.twitter.site && <Row label="Twitter"    value={data.twitter.site} />}
+    </div>
+  )
+}
+
+function EmailSecurityBody({ data }: { data: EmailSecurityData }) {
+  return (
+    <div className="space-y-1">
+      <Row label="SPF"   value={data.spf.present   ? `✓ ${data.spf.record.slice(0, 50)}` : '✗ Missing'} ok={data.spf.present} />
+      <Row label="DMARC" value={data.dmarc.present  ? `✓ p=${data.dmarc.policy || 'none'}` : '✗ Missing'} ok={data.dmarc.present} />
+      <Row label="DKIM"  value={data.dkim.present   ? '✓ Present' : '✗ Not detected'} ok={data.dkim.present} />
+      <Row label="BIMI"  value={data.bimi.present   ? '✓ Present' : '✗ Missing'} ok={data.bimi.present} />
+      {data.mx.length > 0 && (
+        <Row label="MX" value={data.mx.map(r => r.exchange).slice(0, 2).join(', ')} />
+      )}
     </div>
   )
 }

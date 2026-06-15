@@ -83,6 +83,22 @@ export interface SecurityHeadersData {
   }[]
 }
 
+export interface SocialTagsData {
+  title: string; description: string; canonical: string
+  generator: string; themeColor: string; keywords: string
+  author: string; robots: string
+  og: { title: string; description: string; image: string; url: string; type: string; siteName: string }
+  twitter: { card: string; site: string; creator: string; title: string; image: string }
+}
+
+export interface EmailSecurityData {
+  spf:   { present: boolean; record: string }
+  dmarc: { present: boolean; record: string; policy: string }
+  dkim:  { present: boolean }
+  bimi:  { present: boolean; record: string }
+  mx:    { exchange: string; priority: number }[]
+}
+
 // Union type semua lookup results
 export type AnyLookupResult =
   | LookupResult<HeadersData>
